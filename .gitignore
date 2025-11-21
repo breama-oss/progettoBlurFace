@@ -28,4 +28,4 @@ models/
 .vscode/
 
 # Git
-git/
+.git/
