@@ -1,0 +1,28 @@
+# Virtual env
+venv/
+.venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Video input/output
+input/
+output/
+
+# Modelli pesanti
+models/
+
+# Log, temp, backup
+*.log
+*.tmp
+
+# MacOS metadata
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor
+.idea/
+.vscode/
