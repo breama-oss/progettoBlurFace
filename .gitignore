@@ -27,5 +27,3 @@ models/
 .idea/
 .vscode/
 
-# Git
-.git/
