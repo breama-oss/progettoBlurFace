@@ -10,8 +10,7 @@ __pycache__/
 input/
 output/
 
-# Modelli pesanti
-models/
+
 
 # Log, temp, backup
 *.log
