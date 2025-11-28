@@ -5,33 +5,33 @@ import time
 import os
 import glob
 
-# === SETTINGS ===
+# === SETTINGS AGGIORNATI ===
 MODEL_PATH = "models/face_detection_yunet_2023mar.onnx"
 INPUT_FOLDER = "input/"
 OUTPUT_FOLDER = "output/"
 
-SMOOTHING = 10
+SMOOTHING = 5
 BLUR_KERNEL = (99, 99)
 BLUR_SIGMA = 50
-EXPAND_FACTOR = 1.5
+EXPAND_FACTOR = 1.3
 
 # === OTTIMIZZAZIONI ===
-DETECTION_SKIP = 3  # aumentato: detection ogni 3 frame
-RESIZE_DETECTION = 0.5  # riduci risoluzione per detection
+DETECTION_SKIP = 2
+RESIZE_DETECTION = 0.75
 USE_GPU = True
 SCENE_CHANGE_THRESHOLD = 0.3
 
 # === LOW QUALITY VIDEO SETTINGS ===
-ENHANCE_INPUT = False  # disattivato: riduce CPU del 60%
-MIN_FACE_SIZE = 20
-MAX_DISAPPEARED = 30  # aumentato per compensare skip
+ENHANCE_INPUT = False
+MIN_FACE_SIZE = 15
+MAX_DISAPPEARED = 15
 
 # === DETECTOR ===
 detector = cv2.FaceDetectorYN_create(
     model=MODEL_PATH,
     config="",
-    input_size=(320, 320),  # ridotto per velocità
-    score_threshold=0.5,  # bilanciato
+    input_size=(320, 320),
+    score_threshold=0.4,
     nms_threshold=0.4,
     top_k=5000
 )
@@ -44,12 +44,12 @@ if USE_GPU:
     except:
         print("⚠ GPU not available, using CPU")
 
-# Pre-calcola kernel per sharpening
 sharpen_kernel = np.array([[-1,-1,-1],
                            [-1, 9,-1],
                            [-1,-1,-1]])
 
-# === FUNZIONI ===
+# === FUNZIONI AGGIORNATE ===
+
 def euclidean_distance(box1, box2):
     cx1 = box1[0] + box1[2] / 2
     cy1 = box1[1] + box1[3] / 2
@@ -57,21 +57,90 @@ def euclidean_distance(box1, box2):
     cy2 = box2[1] + box2[3] / 2
     return np.sqrt((cx1 - cx2)**2 + (cy1 - cy2)**2)
 
-def expand_bbox(x, y, w_box, h_box, factor, img_w, img_h):
-    cx = x + w_box / 2
-    cy = y + h_box / 2
+def expand_bbox(x, y, w_orig, h_orig, factor, img_w, img_h):
+    """
+    Espansione intelligente che limita box giganti ai bordi.
+    """
     
-    new_w = int(w_box * factor)
-    new_h = int(h_box * factor)
+    # Calcola centro del box originale
+    cx = x + w_orig / 2
+    cy = y + h_orig / 2
     
-    new_x = int(cx - new_w / 2)
-    new_y = int(cy - new_h / 2)
+    # Calcola distanza dai bordi (normalizzata 0-1)
+    edge_margin = 0.15  # 15% dai bordi
+    dist_left = cx / img_w
+    dist_right = (img_w - cx) / img_w
+    dist_top = cy / img_h
+    dist_bottom = (img_h - cy) / img_h
     
-    new_x = max(0, new_x)
-    new_y = max(0, new_y)
-    new_w = min(new_w, img_w - new_x)
-    new_h = min(new_h, img_h - new_y)
+    # Trova la distanza minima dal bordo più vicino
+    min_edge_dist = min(dist_left, dist_right, dist_top, dist_bottom)
     
+    # Riduci il fattore di espansione se vicino ai bordi
+    if min_edge_dist < edge_margin:
+        # Scala lineare: più vicino al bordo = meno espansione
+        edge_factor = min_edge_dist / edge_margin
+        # Minimo 1.1x, massimo factor
+        adjusted_factor = 1.1 + (factor - 1.1) * edge_factor
+    else:
+        adjusted_factor = factor
+    
+    # Calcola dimensioni desiderate
+    desired_w = w_orig * adjusted_factor
+    desired_h = h_orig * adjusted_factor
+    
+    # Limita espansione massima assoluta
+    max_w_limit = w_orig * 2.0
+    max_h_limit = h_orig * 2.0
+    
+    desired_w = min(desired_w, max_w_limit)
+    desired_h = min(desired_h, max_h_limit)
+    
+    # Ulteriore limite: il box espanso non deve superare una certa % del frame
+    max_frame_coverage_w = img_w * 0.4  # massimo 40% larghezza frame
+    max_frame_coverage_h = img_h * 0.5  # massimo 50% altezza frame
+    
+    desired_w = min(desired_w, max_frame_coverage_w)
+    desired_h = min(desired_h, max_frame_coverage_h)
+    
+    # Calcola coordinate
+    x_start = int(cx - desired_w / 2)
+    y_start = int(cy - desired_h / 2)
+    x_end = int(cx + desired_w / 2)
+    y_end = int(cy + desired_h / 2)
+    
+    # Clipping ai bordi
+    new_x = max(0, x_start)
+    new_y = max(0, y_start)
+    new_x_end = min(img_w, x_end)
+    new_y_end = min(img_h, y_end)
+    
+    # Calcola dimensioni finali
+    new_w = new_x_end - new_x
+    new_h = new_y_end - new_y
+    
+    # Validazione finale
+    if new_w <= 0 or new_h <= 0:
+        return x, y, w_orig, h_orig
+    
+    # Sanity check: se il box espanso è sproporzionatamente grande
+    expansion_ratio = (new_w * new_h) / (w_orig * h_orig)
+    if expansion_ratio > 4.0:  # se l'area è più di 4x l'originale
+        # Riduci proporzionalmente
+        scale_down = np.sqrt(4.0 / expansion_ratio)
+        new_w = int(new_w * scale_down)
+        new_h = int(new_h * scale_down)
+        
+        # Ricentra
+        new_x = int(cx - new_w / 2)
+        new_y = int(cy - new_h / 2)
+        
+        # Re-clipping
+        new_x = max(0, new_x)
+        new_y = max(0, new_y)
+        new_w = min(new_w, img_w - new_x)
+        new_h = min(new_h, img_h - new_y)
+        
     return new_x, new_y, new_w, new_h
 
 def apply_blur_optimized(frame, boxes):
@@ -107,8 +176,6 @@ def detect_scene_change(prev_frame, curr_frame, threshold=0.3):
     return correlation < (1.0 - threshold)
 
 def enhance_for_detection(frame):
-    """Versione LEGGERA per ridurre CPU"""
-    # Solo CLAHE, molto più veloce
     lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
@@ -145,7 +212,6 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
     print(f"[{video_idx}/{len(video_files)}] Processing: {video_name}")
     print(f"{'='*60}")
     
-    # Apri video
     cap = cv2.VideoCapture(INPUT_VIDEO)
     if not cap.isOpened():
         print(f"✗ Errore apertura video: {video_name}\n")
@@ -160,21 +226,19 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
     detect_h = int(h * RESIZE_DETECTION)
     detector.setInputSize((detect_w, detect_h))
     
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v") 
     writer = cv2.VideoWriter(OUTPUT_VIDEO, fourcc, fps, (w, h))
     
-    print(f"Resolution: {w}x{h} @ {fps}fps")
+    print(f"Resolution: {w}x{h} @ {fps:.2f}fps")
     print(f"Frames: {total_frames}")
     print(f"Detection: {detect_w}x{detect_h}, skip={DETECTION_SKIP}")
     print()
     
-    # Inizializza tracking
     face_tracks = []
     frame_count = 0
     prev_frame = None
     start_time = time.time()
     
-    # Processa frame
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -185,10 +249,10 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
         scene_changed = detect_scene_change(prev_frame, frame, SCENE_CHANGE_THRESHOLD)
         
         if scene_changed:
-            face_tracks = []
+            face_tracks = [] 
             run_detection = True
         else:
-            run_detection = (frame_count % DETECTION_SKIP == 1)
+            run_detection = (frame_count % DETECTION_SKIP == 1) 
         
         if run_detection:
             if ENHANCE_INPUT:
@@ -210,18 +274,20 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
                     if RESIZE_DETECTION != 1.0:
                         x = int(face[0] / RESIZE_DETECTION)
                         y = int(face[1] / RESIZE_DETECTION)
-                        w_box = int(face[2] / RESIZE_DETECTION)
-                        h_box = int(face[3] / RESIZE_DETECTION)
+                        w_box_orig = int(face[2] / RESIZE_DETECTION)
+                        h_box_orig = int(face[3] / RESIZE_DETECTION)
                     else:
-                        x, y, w_box, h_box = map(int, face[:4])
+                        x, y, w_box_orig, h_box_orig = map(int, face[:4])
                     
-                    if w_box < MIN_FACE_SIZE or h_box < MIN_FACE_SIZE:
+                    if w_box_orig < MIN_FACE_SIZE or h_box_orig < MIN_FACE_SIZE:
                         continue
                     
-                    x, y, w_box, h_box = expand_bbox(x, y, w_box, h_box, EXPAND_FACTOR, w, h)
+                    # Usa expand_bbox migliorato
+                    x, y, w_box, h_box = expand_bbox(x, y, w_box_orig, h_box_orig, EXPAND_FACTOR, w, h)
                     current_boxes.append([x, y, w_box, h_box])
             
-            # Tracking
+            # === TRACKING ===
+            
             if len(face_tracks) == 0 and len(current_boxes) > 0:
                 for box in current_boxes:
                     track = {
@@ -242,13 +308,15 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
                     min_dist = float('inf')
                     best_idx = -1
                     
+                    max_allowable_dist = max(last_box[2] * 0.75, MIN_FACE_SIZE * 1.5)
+                    
                     for i, curr_box in enumerate(current_boxes):
                         if i in used_detections:
                             continue
                         
                         dist = euclidean_distance(last_box, curr_box)
                         
-                        if dist < min(w, h) * 0.3 and dist < min_dist:
+                        if dist < max_allowable_dist and dist < min_dist:
                             min_dist = dist
                             best_idx = i
                     
@@ -267,6 +335,7 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
                         }
                         track['history'].append(box)
                         face_tracks.append(track)
+            
             else:
                 for track in face_tracks:
                     track['disappeared'] += DETECTION_SKIP
@@ -277,14 +346,14 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
             for track in face_tracks:
                 track['disappeared'] += 1
         
-        # Calcola box smooth e applica blur
+        # === BLUR ===
         blur_boxes = []
         
         for track in face_tracks:
             if len(track['history']) == 0:
                 continue
             
-            weights = np.linspace(0.5, 1.0, len(track['history']))
+            weights = np.logspace(np.log10(0.01), np.log10(1.0), len(track['history']))
             weights /= weights.sum()
             
             xs = [box[0] for box in track['history']]
@@ -308,7 +377,6 @@ for video_idx, INPUT_VIDEO in enumerate(video_files, 1):
         frame = apply_blur_optimized(frame, blur_boxes)
         writer.write(frame)
         
-        # Salva frame ridotto per confronto (riduce memoria)
         if frame_count % 5 == 0:
             prev_frame = frame.copy()
         
