@@ -1,0 +1,68 @@
+@startuml progettoBlurFace
+title Elaborazione video con blur volti (Python + YuNet)
+
+start
+
+:Inizio programma;
+:Leggi file video dalla cartella INPUT;
+
+repeat
+  :Seleziona video successivo;
+
+  if (Video trovato?) then (Sì)
+      :Ottieni percorso input/output;
+
+      :Apri VideoCapture(video);
+      if (Video valido?) then (Sì)
+          :Leggi width, height, fps, frameCount;
+          :Configura detector YuNet (modello ONNX);
+          if (Detector pronto?) then (Sì)
+              :Crea VideoWriter per output;
+
+              repeat
+                  :Leggi frame;
+                  if (Frame valido?) then (Sì)
+                      :Detect scene change;
+                      if (Nuova scena?) then (Sì)
+                          :Reset face_tracks;
+                      endif
+
+                      if (run_detection?) then (Sì)
+                          if (ENHANCE_INPUT?) then (Sì)
+                              :enhance_for_detection(frame);
+                          endif
+                          :Ridimensiona frame per detector;
+                          :faces = detector.detect(frame);
+                          :Aggiorna face_tracks;
+                          :Rimuovi track scomparsi;
+                      else (No)
+                          :Incrementa disappeared per track;
+                      endif
+
+                      :Calcola blur_boxes smoothed;
+                      :apply_blur_optimized(frame, blur_boxes);
+                      :Scrivi frame nel VideoWriter;
+                      :Aggiorna prev_frame e barra progresso;
+                  else (No)
+                      stop
+                  endif
+              repeat while (Frame rimanenti?)
+
+              :Chiudi VideoWriter;
+          else (No)
+              :Errore creazione detector YuNet;
+          endif
+
+          :Chiudi VideoCapture;
+      else (No)
+          :Errore apertura video;
+      endif
+  else (No)
+      break
+  endif
+
+repeat while (Altri file?)
+
+stop
+
+@enduml
