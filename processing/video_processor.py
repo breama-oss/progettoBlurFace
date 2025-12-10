@@ -8,6 +8,52 @@ from utils.bbox_utils import expand_bbox
 from config import *
 
 def process_video(input_path, output_path):
+    """
+    Elabora un video applicando rilevamento volti, tracking e blur, producendo
+    un nuovo file video anonimizzato.
+
+    Parametri
+    ----------
+    input_path : str
+        Percorso al file video di input.
+    output_path : str
+        Percorso dove salvare il video elaborato.
+
+    Flusso di lavoro
+    --------
+    1. Apertura del video con OpenCV.
+    2. Inizializzazione del detector con dimensione ridotta (per velocità).
+    3. Ogni `DETECTION_SKIP` frame:
+        - Ridimensionamento del frame.
+        - Rilevamento volti.
+        - Conversione del box alla dimensione originale.
+        - Espansione dei box (`expand_bbox`).
+        - Aggiornamento dei oggetti tracciati (`update_tracks`).
+    4. Per ogni frame:
+        - Smoothing dei box tramite `smooth_track`.
+        - Applicazione del blur con `apply_blur`.
+        - Scrittura del frame nel video di output.
+    5. Ogni 5 frame:
+        - Memorizzazione del frame corrente (per eventuale rilevamento cambi scena).
+
+    Notes
+    -----
+    - La logica del tracciamento evita oscillazioni e migliora la stabilità del blur.
+    - Il rilevamento viene eseguito a frame saltati per ridurre il carico computazionale.
+    - Il blur è applicato con la funzione `apply_blur` da `utils.image_utils`.
+    - Questo metodo non utilizza ancora `detect_scene_change`, ma il frame precedente
+      viene comunque salvato per possibile uso successivo.
+
+    Returns
+    -------
+    None
+        La funzione non restituisce valori, ma salva il video elaborato su disco.
+
+    Raises
+    ------
+    RuntimeError
+        Se il file video di input non può essere aperto.
+    """
     cap = cv2.VideoCapture(input_path)
     if not cap.isOpened():
         print(f"Errore apertura video: {input_path}")

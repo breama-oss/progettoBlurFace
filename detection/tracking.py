@@ -1,13 +1,58 @@
-# Logica di tracking e smoothing
+"""
+Modulo per gestione del tracciamento dei volti rilevati e smoothing dei box.
+
+Le funzioni principali permettono di:
+- Creare nuovi track per volti appena rilevati.
+- Aggiornare i track esistenti associandoli alle nuove rilevazioni.
+- Applicare smoothing alle coordinate dei box per stabilizzare il blur.
+"""
 
 from collections import deque
 import numpy as np
 from config import SMOOTHING, MIN_FACE_SIZE, MAX_DISAPPEARED, DETECTION_SKIP
 
 def create_track(box):
+    """
+    Crea un nuovo track a partire da un box rilevato.
+
+    Parametri
+    ----------
+    box : tuple
+        Box nella forma (x, y, w, h).
+
+    Returns
+    -------
+    dict
+        Dizionario che rappresenta il track, con chiavi:
+        - 'history': deque con la storia delle bounding box (maxlen=SMOOTHING)
+        - 'disappeared': contatore dei frame in cui il volto non è stato rilevato
+    """
     return {'history': deque([box], maxlen=SMOOTHING), 'disappeared': 0}
 
 def update_tracks(tracks, detected_boxes):
+    """
+    Aggiorna i track esistenti associandoli alle nuove rilevazioni.
+
+    Parametri
+    ----------
+    tracks : list of dict
+        Lista di track correnti.
+    detected_boxes : list of tuples
+        Lista di bounding box rilevate nel frame corrente.
+
+    Returns
+    -------
+    list of dict
+        Lista aggiornata di track. I track vengono rimossi se 
+        il contatore 'disappeared' supera MAX_DISAPPEARED.
+
+    Notes
+    -----
+    - I track vengono associati alle nuove rilevazioni basandosi
+      sulla distanza euclidea tra le coordinate top-left.
+    - Se una rilevazione non corrisponde ad alcun track, viene creato un nuovo track.
+    - Se un track non viene aggiornato, il suo contatore 'disappeared' aumenta di DETECTION_SKIP.
+    """
     if not tracks:
         return [create_track(b) for b in detected_boxes]
 
@@ -44,6 +89,25 @@ def update_tracks(tracks, detected_boxes):
 
 
 def smooth_track(track):
+    """
+    Applica smoothing alle coordinate dei box di un track.
+
+    Parametri
+    ----------
+    track : dict
+        Track contenente la cronologia dei box in 'history'.
+
+    Returns
+    -------
+    tuple
+        Box dopo l'applicazione smooth (x, y, w, h).
+
+    Notes
+    -----
+    - Il smoothing utilizza una media pesata logaritmica degli ultimi box.
+    - Più recenti sono i box, maggiore è il loro peso.
+    - Aiuta a stabilizzare il blur e ridurre oscillazioni tra frame consecutivi.
+    """
     weights = np.logspace(-2, 0, len(track['history']))
     weights /= weights.sum()
 
