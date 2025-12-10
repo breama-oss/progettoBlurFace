@@ -22,10 +22,15 @@ Uno script Python basato su OpenCV e il modello YuNet per il rilevamento dei vol
 * Le dipendenze elencate in `requirements.txt`.
 
 ### Setup
-
+1. **Clona il progetto:**
+    ```bash
+    git clone https://github.com/breama-oss/progettoBlurFace.git
+    cd progettoBlurFace
+    ```
+    
 Il progetto è pre-configurato. Le cartelle `input/`, `output/`, `models/` e il modello **`face_detection_yunet_2023mar.onnx`** sono già presenti.
 
-1.  **Attiva l'Ambiente Virtuale (`venv`):**
+2.  **Attiva l'Ambiente Virtuale (`venv`):**
     ```bash
     # Per Linux/macOS
     source venv/bin/activate
@@ -34,7 +39,7 @@ Il progetto è pre-configurato. Le cartelle `input/`, `output/`, `models/` e il 
     venv\Scripts\Activate.ps1
     ```
 
-2.  **Installa le dipendenze:**
+3.  **Installa le dipendenze:**
     ```bash
     pip install -r requirements.txt
     ```
