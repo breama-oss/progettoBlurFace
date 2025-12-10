@@ -40,6 +40,7 @@ def process_video(input_path, output_path):
     -----
     - La logica del tracciamento evita oscillazioni e migliora la stabilità del blur.
     - Il rilevamento viene eseguito a frame saltati per ridurre il carico computazionale.
+    - Integrata una barra di caricamento che tiene traccia del progresso fatto durante l'elaborazione video (Progress bar)
     - Il blur è applicato con la funzione `apply_blur` da `utils.image_utils`.
     - Questo metodo non utilizza ancora `detect_scene_change`, ma il frame precedente
       viene comunque salvato per possibile uso successivo.
@@ -66,7 +67,8 @@ def process_video(input_path, output_path):
     detector = init_detector((int(w * RESIZE_DETECTION), int(h * RESIZE_DETECTION)))
 
     writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    bar_length = 30 
     tracks = []
     frame_count = 0
     prev_frame = None
@@ -77,6 +79,14 @@ def process_video(input_path, output_path):
             break
 
         frame_count += 1
+
+        # Progress bar
+        if total_frames > 0: 
+            percent = frame_count / total_frames
+            filled = int(bar_length * percent)
+            bar = "█" * filled + "-" * (bar_length - filled)
+            print(f"\r[{bar}] {percent*100:5.1f}%", end="")
+        
         run_detection = (frame_count % DETECTION_SKIP == 1)
 
         if run_detection:
