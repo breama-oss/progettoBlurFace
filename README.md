@@ -27,7 +27,7 @@ Uno script Python basato su OpenCV e il modello YuNet per il rilevamento dei vol
     git clone https://github.com/breama-oss/progettoBlurFace.git
     cd progettoBlurFace
     ```
-    
+
 Il progetto è pre-configurato. Le cartelle `input/`, `output/`, `models/` e il modello **`face_detection_yunet_2023mar.onnx`** sono già presenti.
 
 2.  **Attiva l'Ambiente Virtuale (`venv`):**
@@ -98,6 +98,8 @@ La posizione e dimensione finali del box di blur non sono quelle del singolo ril
 La funzione `expand_bbox` oltre a moltiplicare le dimensioni del box, effettua due operazioni:
 1.  **Limita l'Espansione:** Rende il fattore di espansione meno "aggressivo" se il volto è vicino ai bordi del frame (per non far "saltare" l'area offuscata fuori dallo schermo e cercare di tenere il blur stabile).
 2.  **Limiti Assoluti:** Impone un limite massimo di espansione (2.0x) e un limite di copertura del frame (es. max 40% della larghezza) per evitare di offuscare accidentalmente gran parte dello schermo a causa di un rilevamento errato.
+
+---
 
 ## Licenza
 
