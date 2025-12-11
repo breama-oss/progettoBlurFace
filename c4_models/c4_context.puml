@@ -1,0 +1,7 @@
+@startuml c4_context
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(user, "Utente", "Fornisce i video e riceve quelli anonimizzati")
+System(SystemVideo, "Video Anonymization Tool", "Elabora video, rileva volti e applica blur")
+Rel(user, SystemVideo, "Usa")
+@enduml

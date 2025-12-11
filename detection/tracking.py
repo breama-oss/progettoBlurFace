@@ -9,7 +9,7 @@ Le funzioni principali permettono di:
 
 from collections import deque
 import numpy as np
-from config import SMOOTHING, MIN_FACE_SIZE, MAX_DISAPPEARED, DETECTION_SKIP
+from config import SMOOTHING, MAX_DISAPPEARED, DETECTION_SKIP
 
 def create_track(box):
     """

@@ -1,0 +1,16 @@
+@startuml c4_component
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(video_processor, "Video Processor", "Python") {
+    Component(read_write, "Video I/O", "OpenCV", "Legge frame e scrive output")
+    Component(detection, "Face Detection", "FaceDetectorYN", "Interfaccia con detector YuNet")
+    Component(tracking, "Face Tracking", "Python", "Aggiorna e smussa bounding box")
+    Component(blur, "Apply Blur", "Python/OpenCV", "Applica Gaussian Blur sui volti")
+}
+
+Rel(read_write, detection, "Invia frame")
+Rel(detection, tracking, "Ritorna box rilevati")
+Rel(tracking, blur, "Ritorna box smoothed")
+Rel(blur, read_write, "Scrive frame modificato")
+
+@enduml

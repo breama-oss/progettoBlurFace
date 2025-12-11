@@ -19,7 +19,16 @@ Uno script Python basato su OpenCV e il modello YuNet per il rilevamento dei vol
 ## Prerequisiti
 
 * Python 3.x
-* Le dipendenze elencate in `requirements.txt`.
+
+    Per verificare:
+
+    ```bash
+    # macOS/Linux
+    python3 --version
+    
+    # Windows
+    python --version
+    ```
 
 ### Setup
 1. **Clona il progetto:**
@@ -95,7 +104,7 @@ La posizione e dimensione finali del box di blur non sono quelle del singolo ril
 
 ### **3. `expand_bbox`**
 
-La funzione `expand_bbox` oltre a moltiplicare le dimensioni del box, effettua due operazioni:
+La funzione `expand_bbox` oltre a moltiplicare le dimensioni del box effettua due operazioni:
 1.  **Limita l'Espansione:** Rende il fattore di espansione meno "aggressivo" se il volto è vicino ai bordi del frame (per non far "saltare" l'area offuscata fuori dallo schermo e cercare di tenere il blur stabile).
 2.  **Limiti Assoluti:** Impone un limite massimo di espansione (2.0x) e un limite di copertura del frame (es. max 40% della larghezza) per evitare di offuscare accidentalmente gran parte dello schermo a causa di un rilevamento errato.
 

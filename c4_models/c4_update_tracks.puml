@@ -1,0 +1,13 @@
+@startuml c4_component
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(face_tracker, "Face Tracker", "Python") {
+    Component(create_track, "create_track()", "Python", "Crea un nuovo track da un box")
+    Component(update_tracks, "update_tracks()", "Python", "Aggiorna i track esistenti o crea nuovi track")
+    Component(smooth_track, "smooth_track()", "Python", "Applica smoothing logaritmico ai box")
+}
+
+Rel(create_track, update_tracks, "Usato da")
+Rel(update_tracks, smooth_track, "Box aggiornati inviati a")
+
+@enduml

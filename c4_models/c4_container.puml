@@ -1,0 +1,18 @@
+@startuml c4_container
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+System_Boundary(SystemVideo, "Video Anonymization Tool") {
+    Container(video_processor, "Video Processor", "Python", "Gestisce apertura video, frame, rilevamento e scrittura")
+    Container(face_detector, "Face Detector", "OpenCV YuNet", "Rileva volti nei frame")
+    Container(face_tracker, "Face Tracker", "Python", "Traccia i volti nel tempo e applica smoothing ai box")
+    Container(blur_util, "Blur Utility", "Python + OpenCV", "Applica blur alle regioni dei volti")
+}
+
+Person(user, "Utente", "Fornisce i video e riceve quelli anonimizzati")
+
+Rel(user, video_processor, "Invia video")
+Rel(video_processor, face_detector, "Rileva volti")
+Rel(video_processor, face_tracker, "Aggiorna track")
+Rel(video_processor, blur_util, "Applica blur")
+
+@enduml
