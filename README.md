@@ -70,9 +70,9 @@ Il progetto è pre-configurato. Le cartelle `input/`, `output/`, `models/` e il 
 
 ---
 
-## Configurazione (Variabili in `main.py`)
+## Configurazione (Variabili in `config.py`)
 
-È possibile modificare le impostazioni all'inizio del file `main.py` per adattarle alle proprie esigenze:
+È possibile modificare le impostazioni all'inizio del file `config.py` per adattarle alle proprie esigenze:
 
 | Variabile | Descrizione | Default |
 | :--- | :--- | :--- |
