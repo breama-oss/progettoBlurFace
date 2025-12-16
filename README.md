@@ -61,7 +61,12 @@ Il progetto è pre-configurato. Le cartelle `input/`, `output/`, `models/` e il 
     * Copia tutti i video che vuoi processare all'interno della cartella **`input/`**.
 
 2.  **Esegui lo script:**
+
     ```bash
+    # Per Linux e macOS
+    python3 main.py
+
+    # Per Windows
     python main.py
     ```
 
