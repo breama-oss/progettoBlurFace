@@ -1,6 +1,7 @@
 # Logica di processamento video
 
 import cv2
+from tqdm import tqdm
 from detection.detector import init_detector
 from detection.tracking import update_tracks, smooth_track
 from utils.image_utils import apply_blur, detect_scene_change
@@ -57,63 +58,68 @@ def process_video(input_path, output_path):
     """
     cap = cv2.VideoCapture(input_path)
     if not cap.isOpened():
-        print(f"Errore apertura video: {input_path}")
-        return
+        raise RuntimeError(f"Errore apertura video: {input_path}")
 
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
-
-    detector = init_detector((int(w * RESIZE_DETECTION), int(h * RESIZE_DETECTION)))
-
-    writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    bar_length = 30 
+
+    detector = init_detector(
+        (int(w * RESIZE_DETECTION), int(h * RESIZE_DETECTION))
+    )
+
+    writer = cv2.VideoWriter(
+        output_path,
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        fps,
+        (w, h)
+    )
+
     tracks = []
     frame_count = 0
-    prev_frame = None
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    with tqdm(
+        total=total_frames,
+        desc="Processing",
+        unit="frame",
+        ncols=80
+    ) as pbar:
 
-        frame_count += 1
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        # Progress bar
-        if total_frames > 0: 
-            percent = frame_count / total_frames
-            filled = int(bar_length * percent)
-            bar = "█" * filled + "-" * (bar_length - filled)
-            print(f"\r[{bar}] {percent*100:5.1f}%", end="")
-        
-        run_detection = (frame_count % DETECTION_SKIP == 1)
+            frame_count += 1
+            run_detection = (frame_count % DETECTION_SKIP == 1)
 
-        if run_detection:
-            resized = cv2.resize(frame, detector.getInputSize())
-            faces = detector.detect(resized)
-            boxes = []
+            if run_detection:
+                resized = cv2.resize(frame, detector.getInputSize())
+                faces = detector.detect(resized)
+                boxes = []
 
-            if faces[1] is not None:
-                for f in faces[1]:
-                    x = int(f[0] / RESIZE_DETECTION)
-                    y = int(f[1] / RESIZE_DETECTION)
-                    w_box = int(f[2] / RESIZE_DETECTION)
-                    h_box = int(f[3] / RESIZE_DETECTION)
+                if faces[1] is not None:
+                    for f in faces[1]:
+                        x = int(f[0] / RESIZE_DETECTION)
+                        y = int(f[1] / RESIZE_DETECTION)
+                        w_box = int(f[2] / RESIZE_DETECTION)
+                        h_box = int(f[3] / RESIZE_DETECTION)
 
-                    boxes.append(
-                        expand_bbox(x, y, w_box, h_box, EXPAND_FACTOR, w, h)
-                    )
+                        boxes.append(
+                            expand_bbox(
+                                x, y, w_box, h_box,
+                                EXPAND_FACTOR, w, h
+                            )
+                        )
 
-            tracks = update_tracks(tracks, boxes)
+                tracks = update_tracks(tracks, boxes)
 
-        smooth_boxes = [smooth_track(t) for t in tracks]
+            smooth_boxes = [smooth_track(t) for t in tracks]
+            frame = apply_blur(frame, smooth_boxes)
 
-        frame = apply_blur(frame, smooth_boxes)
-        writer.write(frame)
-
-        if frame_count % 5 == 0:
-            prev_frame = frame.copy()
+            writer.write(frame)
+            pbar.update(1)
 
     cap.release()
     writer.release()

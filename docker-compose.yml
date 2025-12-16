@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  faceblur:
+    build: .
+    container_name: faceblur
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+  

@@ -18,40 +18,34 @@ Uno script Python basato su OpenCV e il modello YuNet per il rilevamento dei vol
 
 ## Prerequisiti
 
-* Python 3.x
+Il progetto può essere eseguito interamente tramite **Docker**, senza installare Python o dipendenze sul sistema host.
 
-    Per verificare:
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Docker Compose (incluso in Docker Desktop)
 
-    ```bash
-    # macOS/Linux
-    python3 --version
-    
-    # Windows
-    python --version
-    ```
+Verifica:
+
+```bash
+docker --version
+docker compose version
+```
+
 
 ### Setup
-1. **Clona il progetto:**
-    ```bash
-    git clone https://github.com/breama-oss/progettoBlurFace.git
-    cd progettoBlurFace
-    ```
+**Clona il progetto:**
+```bash
+git clone https://github.com/breama-oss/progettoBlurFace.git
+cd progettoBlurFacePython
+```
 
 Il progetto è pre-configurato. Le cartelle `input/`, `output/`, `models/` e il modello **`face_detection_yunet_2023mar.onnx`** sono già presenti.
 
-2.  **Attiva l'Ambiente Virtuale (`venv`):**
-    ```bash
-    # Per Linux/macOS
-    source venv/bin/activate
+Se dovessero mancare le cartelle di `input/` ed `output/`, creale con:
+```bash
+mkdir input
+mkdir output
+```
 
-    # Per Windows (PowerShell)
-    venv\Scripts\Activate.ps1
-    ```
-
-3.  **Installa le dipendenze:**
-    ```bash
-    pip install -r requirements.txt
-    ```
 
 ---
 
@@ -62,13 +56,9 @@ Il progetto è pre-configurato. Le cartelle `input/`, `output/`, `models/` e il 
 
 2.  **Esegui lo script:**
 
-    ```bash
-    # Per Linux e macOS
-    python3 main.py
-
-    # Per Windows
-    python main.py
-    ```
+```bash
+docker compose run --rm faceblur
+```
 
 3.  **Risultato:**
     * I video processati (con il suffisso `_blurred.mp4`) saranno salvati automaticamente nella cartella **`output/`**.
