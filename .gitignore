@@ -6,12 +6,6 @@ venv/
 __pycache__/
 *.pyc
 
-# Video input/output
-input/
-output/
-
-
-
 # Log, temp, backup
 *.log
 *.tmp
